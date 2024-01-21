@@ -1,23 +1,123 @@
 import customtkinter as ctk
 import tkinter as tk
 from PIL import Image
+import os
+
+SUPPORTED_IMAGES_FORMATS = ['png']
+PATH_TO_IMAGES = '../data/img'
+PATH_TO_MODELS = '../models'
 
 
 class Main_Window(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        #self.geometry(f'{self.winfo_screenwidth()}x{self.winfo_screenheight()}')
+        # root settings
+        # self.geometry(f'{self.winfo_screenwidth()}x{self.winfo_screenheight()}')
         self.geometry('1000x700')
         self.resizable(False, False)
         self.title('YOLO Object Detector')
         self.iconbitmap('../img/icon.ico')
 
+        # attributes
+        self.images = get_image_list(PATH_TO_IMAGES)
+        self.models = get_model_list(PATH_TO_MODELS)
+        self.selected_image = None
+        self.selected_model = None
+
         # widgets
-        image = ctk.CTkImage(light_image=Image.open('../data/test.png'), dark_image=Image.open('../data/test.png'), size=(960,540))
-        image_label = ctk.CTkLabel(self, text='', image=image)
-        image_label.pack(pady=10)
+        self.image = ctk.CTkImage(light_image=Image.open(f'../img/photo.png'), # place holder image
+                                    dark_image=Image.open(f'../img/photo.png'),
+                                    size=(960,540))
+        self.image_label = ctk.CTkLabel(self, text='', image=self.image)
+
+        self.predict_btn = ctk.CTkButton(master=self, text='Predict',
+                                       font=ctk.CTkFont(size=30),
+                                       command=self.predict_btn_onclick)
+        
+        self.exit_btn = ctk.CTkButton(master=self, text='Exit',
+                                       font=ctk.CTkFont(size=30),
+                                       command=self.exit_btn_onclick)
+        
+        self.image_cmbox = ctk.CTkComboBox(master=self, values=self.images,
+                                      state='readonly',
+                                      command=self.image_cmbox_callback,
+                                      width=300,
+                                      height=40,
+                                      font=ctk.CTkFont(size=15, weight='bold'),
+                                      dropdown_font=ctk.CTkFont(size=15, weight='bold'))
+        
+        self.model_cmbox = ctk.CTkComboBox(master=self, values=self.models,
+                                      state='readonly',
+                                      command=self.model_cmbox_callback,
+                                      width=300, 
+                                      height=40,
+                                      font=ctk.CTkFont(size=15, weight='bold'),
+                                      dropdown_font=ctk.CTkFont(size=15, weight='bold'))
+        
+        self.image_cmbox_label = ctk.CTkLabel(master=self, text='Select Image:',
+                                   font=ctk.CTkFont(size=20, weight='bold'),
+                                   height=10)
+        
+        self.model_cmbox_label = ctk.CTkLabel(master=self, text='Select Model:',
+                                   font=ctk.CTkFont(size=20, weight='bold'),
+                                   height=10)
+
+        # grid deffinition
+        self.rowconfigure(0, weight=10)
+        self.rowconfigure(1, weight=1)
+        self.rowconfigure(2, weight=1)
+        self.rowconfigure(3, weight=1)
+        self.rowconfigure(4, weight=1)
+        
+        self.columnconfigure(0,weight=1)
+        self.columnconfigure(1,weight=1)
+        self.columnconfigure(2,weight=1)
+        self.columnconfigure(3,weight=1)
 
         # layout
+        self.image_label.grid(row=0, column=0, columnspan=4, padx=10, pady=10, sticky='enw')
+        self.predict_btn.grid(row=2, column=2, columnspan=1, padx=10, pady=10)
+        self.exit_btn.grid(row=2, column=3, columnspan=1, padx=10, pady=10)
+        self.image_cmbox.grid(row=2, column=0, columnspan=1, padx=10, pady=10, sticky='ew')
+        self.model_cmbox.grid(row=4, column=0, columnspan=1, padx=10, pady=10, sticky='ew')
+        self.image_cmbox_label.grid(row=1, column=0, columnspan=1, padx=20, pady=10, sticky='sw')
+        self.model_cmbox_label.grid(row=3, column=0, columnspan=1, padx=20, pady=10, sticky='sw')
+        
 
-        # actions
+    # actions
+    def predict_btn_onclick(self) -> None:
+        pass
+
+    def exit_btn_onclick(self) -> None:
+        self.destroy()
+
+    def image_cmbox_callback(self, selected) -> None:
+        self.selected_image = selected
+        self.image = ctk.CTkImage(light_image=Image.open(f'{PATH_TO_IMAGES}/{selected}'),
+                                    dark_image=Image.open(f'{PATH_TO_IMAGES}/{selected}'),
+                                    size=(960,540))
+        self.image_label.configure(image=self.image)
+        self.image_label._image=self.image
+
+    def model_cmbox_callback(self, selected) -> None:
+        self.selected_model = selected
+
+
+# ------------------------------------------------------------------------------------------------------------
+        
+
+# functions
+def get_image_list(path):
+    if os.path.exists(path) and os.path.isdir(path):
+        return [x for x in os.listdir(path) if x.split('.')[-1] in SUPPORTED_IMAGES_FORMATS]
+    else:
+        print('Path to images is invalid.')
+        return -1
+    
+def get_model_list(path):
+    if os.path.exists(path) and os.path.isdir(path):
+        return [x for x in os.listdir(path) if x.endswith('.pt')]
+    else:
+        print('Path to models is invalid.')
+        return -1
