@@ -2,11 +2,8 @@ import customtkinter as ctk
 import tkinter as tk
 from PIL import Image
 import os
-
-SUPPORTED_IMAGES_FORMATS = ['png']
-PATH_TO_IMAGES = '../data/img'
-PATH_TO_MODELS = '../models'
-
+from settings import *
+from functions import *
 
 class Main_Window(ctk.CTk):
     def __init__(self):
@@ -87,37 +84,23 @@ class Main_Window(ctk.CTk):
 
     # actions
     def predict_btn_onclick(self) -> None:
-        pass
+        model = load_model(f'{PATH_TO_MODELS}/{self.selected_model}')
+        image = get_prediction_image(model, f'{PATH_TO_IMAGES}/{self.selected_image}')
+        self.update_image(image)
 
     def exit_btn_onclick(self) -> None:
         self.destroy()
 
     def image_cmbox_callback(self, selected) -> None:
         self.selected_image = selected
-        self.image = ctk.CTkImage(light_image=Image.open(f'{PATH_TO_IMAGES}/{selected}'),
-                                    dark_image=Image.open(f'{PATH_TO_IMAGES}/{selected}'),
-                                    size=(960,540))
-        self.image_label.configure(image=self.image)
-        self.image_label._image=self.image
+        self.update_image(Image.open(f'{PATH_TO_IMAGES}/{selected}'))
 
     def model_cmbox_callback(self, selected) -> None:
         self.selected_model = selected
 
-
-# ------------------------------------------------------------------------------------------------------------
-        
-
-# functions
-def get_image_list(path):
-    if os.path.exists(path) and os.path.isdir(path):
-        return [x for x in os.listdir(path) if x.split('.')[-1] in SUPPORTED_IMAGES_FORMATS]
-    else:
-        print('Path to images is invalid.')
-        return -1
-    
-def get_model_list(path):
-    if os.path.exists(path) and os.path.isdir(path):
-        return [x for x in os.listdir(path) if x.endswith('.pt')]
-    else:
-        print('Path to models is invalid.')
-        return -1
+    def update_image(self, image) -> None:
+        self.image = ctk.CTkImage(light_image=image,
+                                    dark_image=image,
+                                    size=(960,540))
+        self.image_label.configure(image=self.image)
+        self.image_label._image = self.image

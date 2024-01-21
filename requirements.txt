@@ -1,3 +1,6 @@
 customtkinter
 tk
 pillow
+ultralytics
+torch 
+torchvision
