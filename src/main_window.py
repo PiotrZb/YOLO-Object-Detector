@@ -50,12 +50,18 @@ class Main_Window(ctk.CTk):
 
         self.predict_btn = ctk.CTkButton(master=self, text='Predict',
                                        font=ctk.CTkFont(size=15),
-                                       command=self.predict_btn_onclick)
+                                       command=self.predict_btn_onclick,
+                                       state=ctk.DISABLED)
         
         self.exit_btn = ctk.CTkButton(master=self, text='Exit',
                                        font=ctk.CTkFont(size=15),
                                        command=self.exit_btn_onclick)
         
+        self.reply_btn = ctk.CTkButton(master=self, text='Reply',
+                                       font=ctk.CTkFont(size=15),
+                                       command=self.reply_btn_onclick,
+                                       state=ctk.DISABLED)
+
         self.source_cmbox = ctk.CTkComboBox(master=self, values=self.images,
                                       state='readonly',
                                       command=self.source_cmbox_callback,
@@ -76,6 +82,10 @@ class Main_Window(ctk.CTk):
                                    font=ctk.CTkFont(size=15, weight='bold'),
                                    height=10)
         
+        self.mode_label = ctk.CTkLabel(master=self, text='Select Mode:',
+                                   font=ctk.CTkFont(size=15, weight='bold'),
+                                   height=10)
+        
         self.model_cmbox_label = ctk.CTkLabel(master=self, text='Select Model:',
                                    font=ctk.CTkFont(size=15, weight='bold'),
                                    height=10)
@@ -88,6 +98,12 @@ class Main_Window(ctk.CTk):
         
         self.radiobtn_video = ctk.CTkRadioButton(master=self, text="Video", 
                                                  variable=self.mode, value=2,
+                                                 command=self.radiobtn_callback, 
+                                                 font=ctk.CTkFont(size=15, weight='bold'),
+                                                height=10)
+        
+        self.radiobtn_camera = ctk.CTkRadioButton(master=self, text="Camera", 
+                                                 variable=self.mode, value=3,
                                                  command=self.radiobtn_callback, 
                                                  font=ctk.CTkFont(size=15, weight='bold'),
                                                 height=10)
@@ -107,46 +123,64 @@ class Main_Window(ctk.CTk):
         # layout
         self.image_label.grid(row=0, column=0, columnspan=4, padx=10, pady=10, sticky='enw')
         self.predict_btn.grid(row=2, column=2, columnspan=1, padx=10, pady=10)
-        self.exit_btn.grid(row=2, column=3, columnspan=1, padx=10, pady=10)
+        self.reply_btn.grid(row=2, column=3, columnspan=1, padx=10, pady=10)
+        self.exit_btn.grid(row=4, column=3, columnspan=1, padx=10, pady=10)
         self.source_cmbox.grid(row=2, column=0, columnspan=1, padx=10, pady=10, sticky='ew')
         self.model_cmbox.grid(row=4, column=0, columnspan=1, padx=10, pady=10, sticky='ew')
         self.source_cmbox_label.grid(row=1, column=0, columnspan=1, padx=20, pady=10, sticky='sw')
         self.model_cmbox_label.grid(row=3, column=0, columnspan=1, padx=20, pady=10, sticky='sw')
-        self.radiobtn_image.grid(row=1, column=1, columnspan=1, padx=10, pady=10, sticky='nsew')
-        self.radiobtn_video.grid(row=2, column=1, columnspan=1, padx=10, pady=10, sticky='nsew')
+        self.mode_label.grid(row=1, column=1, columnspan=1, padx=20, pady=10, sticky='sw')
+        self.radiobtn_image.grid(row=2, column=1, columnspan=1, padx=10, pady=10, sticky='nsew')
+        self.radiobtn_video.grid(row=3, column=1, columnspan=1, padx=10, pady=10, sticky='nsew')
+        self.radiobtn_camera.grid(row=4, column=1, columnspan=1, padx=10, pady=10, sticky='nsew')
         
 
     # actions
+    def start_threads(self):
+        self.stream_active = True
+        self.stream_thread = th.Thread(target=self.start_video_stream)
+        self.stream_thread.start()
+        self.video_prediction_active = True
+        self.video_predict_thread = th.Thread(target=self.predict_on_video)
+        self.video_predict_thread.start()
+        self.predict_btn.configure(text="Pause")
+
     def predict_btn_onclick(self) -> None:
         if self.mode.get() == 1:
             self.single_image_thread = th.Thread(target=self.predict_on_single_image)
             self.single_image_thread.start()
         elif self.mode.get() == 2 and not self.video_prediction_active:
-            self.stream_active = True
-            self.stream_thread = th.Thread(target=self.start_video_stream)
-            self.stream_thread.start()
-            self.video_prediction_active = True
-            self.video_predict_thread = th.Thread(target=self.predict_on_video)
-            self.video_predict_thread.start()
-            self.predict_btn.configure(text="Pause")
+            self.start_threads()
         elif self.pause:
             self.pause = False
             self.predict_btn.configure(text="Pause")
+            self.reply_btn.configure(state=ctk.DISABLED)
+            print("123123")
         else:
             self.pause = True
             self.predict_btn.configure(text="Resume")
-
+            self.reply_btn.configure(state=ctk.NORMAL)
 
 
     def exit_btn_onclick(self) -> None:
         self.finish_threads()
         self.destroy()
+
+
+    def reply_btn_onclick(self) -> None:
+        self.finish_threads()
+        self.start_threads()
+        self.pause = False
+        self.reply_btn.configure(state=ctk.DISABLED)
     
+
     def finish_threads(self):
-        self.stream_active = False
-        self.stream_thread.join()
-        self.video_prediction_active = False
-        self.video_predict_thread.join()
+        if self.stream_thread is not None:
+            self.stream_active = False
+            self.stream_thread.join()
+        if self.video_predict_thread is not None:
+            self.video_prediction_active = False
+            self.video_predict_thread.join()
 
 
     def source_cmbox_callback(self, selected) -> None:
@@ -157,10 +191,16 @@ class Main_Window(ctk.CTk):
             self.selected_video = selected
             # TODO
 
+        if self.model is not None:
+            self.predict_btn.configure(state=ctk.NORMAL)
+
 
     def model_cmbox_callback(self, selected) -> None:
         self.selected_model = selected
         self.model = YOLO(f'{PATH_TO_MODELS}/{self.selected_model}')
+
+        if (self.selected_image is not None and self.mode.get() == 1) or (self.selected_video is not None and self.mode.get() == 2):
+            self.predict_btn.configure(state=ctk.NORMAL)
 
 
     def update_image(self, image) -> None:
@@ -173,6 +213,7 @@ class Main_Window(ctk.CTk):
 
     def radiobtn_callback(self):
         if self.mode.get() == 1:
+            self.finish_threads()
             self.source_cmbox.configure(values=self.images)
         elif self.mode.get() == 2:
             self.source_cmbox.configure(values=self.videos)
@@ -181,6 +222,8 @@ class Main_Window(ctk.CTk):
         self.update_image(Image.open(f'../img/photo.png'))
         self.selected_image = None
         self.selected_video = None
+        self.reply_btn.configure(state=ctk.DISABLED)
+        self.predict_btn.configure(state=ctk.DISABLED, text="Predict")
     
 
     # thread functions
@@ -205,6 +248,10 @@ class Main_Window(ctk.CTk):
             original_time = (1 / original_fps) # single frame time
 
             while self.stream_active:
+                if self.pause:
+                    time.sleep(0.5)
+                    continue
+
                 start_time = time.time()
 
                 with global_lock: # save acces
@@ -230,6 +277,11 @@ class Main_Window(ctk.CTk):
 
         # thread loop
         while self.video_prediction_active: 
+
+            if self.pause:
+                    time.sleep(0.5)
+                    continue
+
             if self.current_stream_frame is not None:
                 start_time = time.time()
                 
