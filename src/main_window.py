@@ -39,6 +39,7 @@ class Main_Window(ctk.CTk):
         self.video_predict_thread = None
         self.stream_thread = None
         self.single_image_thread = None
+        self.pause= False
 
         # widgets
         self.image = ctk.CTkImage(light_image=Image.open(f'../img/photo.png'), # place holder image
@@ -127,6 +128,14 @@ class Main_Window(ctk.CTk):
             self.video_prediction_active = True
             self.video_predict_thread = th.Thread(target=self.predict_on_video)
             self.video_predict_thread.start()
+            self.predict_btn.configure(text="Pause")
+        elif self.pause:
+            self.pause = False
+            self.predict_btn.configure(text="Pause")
+        else:
+            self.pause = True
+            self.predict_btn.configure(text="Resume")
+
 
 
     def exit_btn_onclick(self) -> None:
@@ -159,7 +168,7 @@ class Main_Window(ctk.CTk):
                                     dark_image=image,
                                     size=(640,384))
         self.image_label.configure(image=self.image)
-        self.image_label._image = self.image
+        self.image_label.image = self.image
     
 
     def radiobtn_callback(self):
