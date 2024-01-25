@@ -40,6 +40,8 @@ class Main_Window(ctk.CTk):
         self.stream_thread = None
         self.single_image_thread = None
         self.pause= False
+        self.camera_active = False
+        self.camera_thread = None
 
         # widgets
         self.image = ctk.CTkImage(light_image=Image.open(f'../img/photo.png'), # place holder image
@@ -181,6 +183,9 @@ class Main_Window(ctk.CTk):
         if self.video_predict_thread is not None:
             self.video_prediction_active = False
             self.video_predict_thread.join()
+        if self.camera_thread is not None:
+            self.camera_active = False
+            self.camera_thread.join()
 
 
     def source_cmbox_callback(self, selected) -> None:
@@ -216,12 +221,20 @@ class Main_Window(ctk.CTk):
             self.finish_threads()
             self.source_cmbox.configure(values=self.images)
         elif self.mode.get() == 2:
+            self.finish_threads()
             self.source_cmbox.configure(values=self.videos)
+        elif self.mode.get() == 3:
+            self.finish_threads()
+            self.camera_active = True
+            if self.camera_thread is None:
+                self.camera_thread = th.Thread(target=self.start_camera_stream)
+            self.camera_thread.start()
             
         self.source_cmbox.set('')
         self.update_image(Image.open(f'../img/photo.png'))
         self.selected_image = None
         self.selected_video = None
+        self.pause = False
         self.reply_btn.configure(state=ctk.DISABLED)
         self.predict_btn.configure(state=ctk.DISABLED, text="Predict")
     
@@ -294,8 +307,40 @@ class Main_Window(ctk.CTk):
                 prediction_image = np.ascontiguousarray(results[0].plot()[..., ::-1], dtype=np.uint8)
                 
                 # print fps
-                cv.putText(prediction_image, f"FPS {(1/(time.time() - start_time)):.1f}", (20, 20), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                cv.putText(prediction_image, f"FPS {(1/(time.time() - start_time)):.1f}", (30, 30), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
                 
                 # update image
                 if self.video_prediction_active:
                     self.update_image(Image.fromarray(prediction_image))
+
+    def start_camera_stream(self):
+        video_capture = cv.VideoCapture(0) # video capture init
+
+        if video_capture.isOpened():
+
+            while self.camera_active:
+
+                start_time = time.time()
+
+                with global_lock: # save acces
+                    ret, frame = video_capture.read() # read next frame
+
+                if not ret: # end ov video (finish thread)
+                    break
+                
+                with global_lock: # save acces
+                    frame_copy = frame.copy()
+                
+                # predict
+                results = self.model(frame_copy)
+                
+                prediction_image = np.ascontiguousarray(results[0].plot()[..., ::-1], dtype=np.uint8)
+                
+                # print fps
+                cv.putText(prediction_image, f"FPS {(1/(time.time() - start_time)):.1f}", (30, 30), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                
+                # update image
+                if self.camera_active:
+                    self.update_image(Image.fromarray(prediction_image))
+            
+        video_capture.release()
