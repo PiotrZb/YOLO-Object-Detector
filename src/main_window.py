@@ -19,7 +19,7 @@ class Main_Window(ctk.CTk):
 
         # root settings
         # self.geometry(f'{self.winfo_screenwidth()}x{self.winfo_screenheight()}')
-        self.geometry('1000x600')
+        self.geometry(f'{WINDOW_SIZE[0]}x{WINDOW_SIZE[1]}')
         self.resizable(False, False)
         self.title('YOLO Detektor')
         self.iconbitmap('../img/icon.ico')
@@ -42,13 +42,15 @@ class Main_Window(ctk.CTk):
         self.pause= False
         self.camera_active = False
         self.camera_thread = None
+        self.conf = tk.StringVar(master=self, value="25 %")
+        self.iou = tk.StringVar(master=self, value="0.50")
 
         # widgets
         self.image = ctk.CTkImage(light_image=Image.open(f'../img/photo.png'), # place holder image
                                     dark_image=Image.open(f'../img/photo.png'),
                                     size=(640,384))
         
-        self.image_label = ctk.CTkLabel(self, text='', image=self.image)
+        self.image_label = ctk.CTkLabel(master=self, text='', image=self.image)
 
         self.predict_btn = ctk.CTkButton(master=self, text='Predykcja',
                                        font=ctk.CTkFont(size=15),
@@ -58,6 +60,10 @@ class Main_Window(ctk.CTk):
         self.exit_btn = ctk.CTkButton(master=self, text='Wyjście',
                                        font=ctk.CTkFont(size=15),
                                        command=self.exit_btn_onclick)
+        
+        self.save_btn = ctk.CTkButton(master=self, text='Zapisz',
+                                       font=ctk.CTkFont(size=15),
+                                       command=self.save_btn_onclick)
         
         self.reply_btn = ctk.CTkButton(master=self, text='Ponów',
                                        font=ctk.CTkFont(size=15),
@@ -109,13 +115,41 @@ class Main_Window(ctk.CTk):
                                                  command=self.radiobtn_callback, 
                                                  font=ctk.CTkFont(size=15, weight='bold'),
                                                 height=10)
+        
+        self.iou_slider = ctk.CTkSlider(master=self, from_=0, to=1, 
+                                        command=self.iou_slider_event, 
+                                        number_of_steps=20,
+                                        orientation="vertical")
+        
+        self.conf_slider = ctk.CTkSlider(master=self, from_=0, to=100, 
+                                        command=self.conf_slider_event, 
+                                        number_of_steps=20,
+                                        orientation="vertical")
+        
+        self.iou_label = ctk.CTkLabel(master=self, text='IoU',
+                                   font=ctk.CTkFont(size=15, weight='bold'),
+                                   height=10)
+        
+        self.conf_label = ctk.CTkLabel(master=self, text='Pewność',
+                                   font=ctk.CTkFont(size=15, weight='bold'),
+                                   height=10)
+        
+        self.iou_value_label = ctk.CTkLabel(master=self, textvariable=self.iou,
+                                   font=ctk.CTkFont(size=15, weight='bold'),
+                                   height=10)
+        
+        self.conf_value_label = ctk.CTkLabel(master=self, textvariable=self.conf,
+                                   font=ctk.CTkFont(size=15, weight='bold'),
+                                   height=10)
 
         # grid deffinition
-        self.rowconfigure(0, weight=10)
-        self.rowconfigure(1, weight=1)
+        self.rowconfigure(0, weight=1)
+        self.rowconfigure(1, weight=10)
         self.rowconfigure(2, weight=1)
         self.rowconfigure(3, weight=1)
         self.rowconfigure(4, weight=1)
+        self.rowconfigure(5, weight=1)
+        self.rowconfigure(6, weight=1)
         
         self.columnconfigure(0,weight=1)
         self.columnconfigure(1,weight=1)
@@ -123,18 +157,25 @@ class Main_Window(ctk.CTk):
         self.columnconfigure(3,weight=1)
 
         # layout
-        self.image_label.grid(row=0, column=0, columnspan=4, padx=10, pady=10, sticky='enw')
-        self.predict_btn.grid(row=2, column=2, columnspan=1, padx=10, pady=10)
-        self.reply_btn.grid(row=2, column=3, columnspan=1, padx=10, pady=10)
-        self.exit_btn.grid(row=4, column=3, columnspan=1, padx=10, pady=10)
-        self.source_cmbox.grid(row=2, column=0, columnspan=1, padx=10, pady=10, sticky='ew')
-        self.model_cmbox.grid(row=4, column=0, columnspan=1, padx=10, pady=10, sticky='ew')
-        self.source_cmbox_label.grid(row=1, column=0, columnspan=1, padx=20, pady=10, sticky='sw')
-        self.model_cmbox_label.grid(row=3, column=0, columnspan=1, padx=20, pady=10, sticky='sw')
-        self.mode_label.grid(row=1, column=1, columnspan=1, padx=20, pady=10, sticky='sw')
-        self.radiobtn_image.grid(row=2, column=1, columnspan=1, padx=10, pady=10, sticky='nsew')
-        self.radiobtn_video.grid(row=3, column=1, columnspan=1, padx=10, pady=10, sticky='nsew')
-        self.radiobtn_camera.grid(row=4, column=1, columnspan=1, padx=10, pady=10, sticky='nsew')
+        self.image_label.grid(row=0, column=0, columnspan=2, rowspan=3, padx=10, pady=10, sticky='enw')
+        self.conf_slider.grid(row=1, column=2, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.conf_label.grid(row=0, column=2, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.conf_value_label.grid(row=2, column=2, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.iou_slider.grid(row=1, column=3, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.iou_label.grid(row=0, column=3, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.iou_value_label.grid(row=2, column=3, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.predict_btn.grid(row=4, column=2, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.reply_btn.grid(row=4, column=3, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.exit_btn.grid(row=6, column=3, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.save_btn.grid(row=6, column=2, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.source_cmbox.grid(row=4, column=0, columnspan=1, rowspan=1, padx=10, pady=10, sticky='ew')
+        self.model_cmbox.grid(row=6, column=0, columnspan=1, rowspan=1, padx=10, pady=10, sticky='ew')
+        self.source_cmbox_label.grid(row=3, column=0, columnspan=1, rowspan=1, padx=20, pady=10, sticky='sw')
+        self.model_cmbox_label.grid(row=5, column=0, columnspan=1, rowspan=1, padx=20, pady=10, sticky='sw')
+        self.mode_label.grid(row=3, column=1, columnspan=1, padx=20, rowspan=1, pady=10, sticky='sw')
+        self.radiobtn_image.grid(row=4, column=1, columnspan=1, rowspan=1, padx=10, pady=10, sticky='nsew')
+        self.radiobtn_video.grid(row=5, column=1, columnspan=1, rowspan=1, padx=10, pady=10, sticky='nsew')
+        self.radiobtn_camera.grid(row=6, column=1, columnspan=1, rowspan=1, padx=10, pady=10, sticky='nsew')
         
 
     # actions
@@ -147,6 +188,15 @@ class Main_Window(ctk.CTk):
         self.video_predict_thread.start()
         self.predict_btn.configure(text="Pauza")
 
+
+    def iou_slider_event(self, value):
+        self.iou.set(f"{round(value, 2):.2f}")
+
+
+    def conf_slider_event(self, value):
+        self.conf.set(f"{int(value)} %")
+
+
     def predict_btn_onclick(self) -> None:
         if self.mode.get() == 1:
             self.single_image_thread = th.Thread(target=self.predict_on_single_image)
@@ -157,6 +207,8 @@ class Main_Window(ctk.CTk):
             self.radiobtn_video.configure(state=ctk.DISABLED)
             self.radiobtn_image.configure(state=ctk.DISABLED)
             self.source_cmbox.configure(state=ctk.DISABLED)
+            self.iou_slider.configure(state=ctk.DISABLED)
+            self.conf_slider.configure(state=ctk.DISABLED)
         elif self.pause:
             self.pause = False
             self.predict_btn.configure(text="Pauza")
@@ -165,6 +217,8 @@ class Main_Window(ctk.CTk):
             self.radiobtn_video.configure(state=ctk.DISABLED)
             self.radiobtn_image.configure(state=ctk.DISABLED)
             self.source_cmbox.configure(state=ctk.DISABLED)
+            self.iou_slider.configure(state=ctk.DISABLED)
+            self.conf_slider.configure(state=ctk.DISABLED)
         else:
             self.pause = True
             self.predict_btn.configure(text="Wznów")
@@ -173,11 +227,16 @@ class Main_Window(ctk.CTk):
             self.radiobtn_video.configure(state=ctk.NORMAL)
             self.radiobtn_image.configure(state=ctk.NORMAL)
             self.source_cmbox.configure(state=ctk.NORMAL)
+            self.iou_slider.configure(state=ctk.NORMAL)
+            self.conf_slider.configure(state=ctk.NORMAL)
 
 
     def exit_btn_onclick(self) -> None:
         self.finish_threads()
         self.destroy()
+
+    def save_btn_onclick(self) -> None:
+        pass
 
 
     def reply_btn_onclick(self) -> None:
@@ -259,7 +318,7 @@ class Main_Window(ctk.CTk):
     # thread functions
     def predict_on_single_image(self):
         with global_lock:
-            results = self.model.predict(f'{PATH_TO_IMAGES}/{self.selected_image}', iou=0.5)
+            results = self.model.predict(f'{PATH_TO_IMAGES}/{self.selected_image}', iou=self.iou.get(), conf=self.conf.get() / 100)
         image = Image.fromarray(results[0].plot()[..., ::-1])
         with global_lock:
             self.update_image(image)
@@ -319,7 +378,7 @@ class Main_Window(ctk.CTk):
                     frame_copy = self.current_stream_frame.copy()
                 
                 # predict
-                results = self.model(frame_copy)
+                results = self.model.predict(frame_copy, iou=self.iou.get(), conf=self.conf.get() / 100)
                 prediction_image = np.ascontiguousarray(results[0].plot()[..., ::-1], dtype=np.uint8)
                 
                 # print fps
@@ -350,7 +409,7 @@ class Main_Window(ctk.CTk):
                 
                 # predict
                 if self.model is not None:
-                    results = self.model(frame_copy)
+                    results = self.model.predict(frame_copy, iou=self.iou.get(), conf=self.conf.get() / 100)
                     prediction_image = np.ascontiguousarray(results[0].plot()[..., ::-1], dtype=np.uint8)
                 else:
                     prediction_image = cv.cvtColor(frame_copy, cv.COLOR_BGR2RGB)
