@@ -4,9 +4,7 @@ from PIL import Image
 from settings import *
 from functions import *
 from ultralytics import YOLO
-import cv2 as cv
 import threading as th
-import time
 import numpy as np
 from CameraThread import CameraThread
 from VideoStreamThread import VideoStreamThread
@@ -38,7 +36,6 @@ class Main_Window(ctk.CTk):
         self.selected_model = None
         self.mode = tk.IntVar(master=self, value=1) # 1 - single image, 2 - video, 3 - camera
         self.model = None
-        self.current_stream_frame = np.empty((1,1,1))
         self.video_predict_thread = None
         self.video_stream_thread = None
         self.single_image_thread = None
@@ -54,25 +51,79 @@ class Main_Window(ctk.CTk):
                                     dark_image=Image.open(f'../img/photo.png'),
                                     size=(640,384))
         
+        self.movie_icon = ctk.CTkImage(light_image=Image.open(f'../img/movie.png'), # place holder image
+                                    dark_image=Image.open(f'../img/movie.png'),
+                                    size=(24,24))
+        
+        self.camera_icon = ctk.CTkImage(light_image=Image.open(f'../img/camera.png'), # place holder image
+                                    dark_image=Image.open(f'../img/camera.png'),
+                                    size=(24,24))
+        
+        self.image_icon = ctk.CTkImage(light_image=Image.open(f'../img/image.png'), # place holder image
+                                    dark_image=Image.open(f'../img/image.png'),
+                                    size=(24,24))
+        
+        self.exit_icon = ctk.CTkImage(light_image=Image.open(f'../img/exit.png'), # place holder image
+                                    dark_image=Image.open(f'../img/exit.png'),
+                                    size=(24,24))
+        
+        self.save_icon = ctk.CTkImage(light_image=Image.open(f'../img/save.png'), # place holder image
+                                    dark_image=Image.open(f'../img/save.png'),
+                                    size=(24,24))
+        
+        self.replay_icon = ctk.CTkImage(light_image=Image.open(f'../img/replay.png'), # place holder image
+                                    dark_image=Image.open(f'../img/replay.png'),
+                                    size=(24,24))
+        
+        self.play_icon = ctk.CTkImage(light_image=Image.open(f'../img/play.png'), # place holder image
+                                    dark_image=Image.open(f'../img/play.png'),
+                                    size=(24,24))
+        
+        self.pause_icon = ctk.CTkImage(light_image=Image.open(f'../img/pause.png'), # place holder image
+                                    dark_image=Image.open(f'../img/pause.png'),
+                                    size=(24,24))
+        
+        self.folder_icon = ctk.CTkImage(light_image=Image.open(f'../img/folder.png'), # place holder image
+                                    dark_image=Image.open(f'../img/folder.png'),
+                                    size=(24,24))
+        
+        self.ai_icon = ctk.CTkImage(light_image=Image.open(f'../img/ai.png'), # place holder image
+                                    dark_image=Image.open(f'../img/ai.png'),
+                                    size=(24,24))
+        
         self.image_label = ctk.CTkLabel(master=self, text='', image=self.image)
+
+        self.movie_icon_label = ctk.CTkLabel(master=self, text='', image=self.movie_icon)
+
+        self.camera_icon_label = ctk.CTkLabel(master=self, text='', image=self.camera_icon)
+
+        self.image_icon_label = ctk.CTkLabel(master=self, text='', image=self.image_icon)
 
         self.predict_btn = ctk.CTkButton(master=self, text='Predykcja',
                                        font=ctk.CTkFont(size=15),
                                        command=self.predict_btn_onclick,
-                                       state=ctk.DISABLED)
+                                       state=ctk.DISABLED,
+                                       image=self.play_icon,
+                                       compound="right")
         
         self.exit_btn = ctk.CTkButton(master=self, text='Wyjście',
                                        font=ctk.CTkFont(size=15),
-                                       command=self.exit_btn_onclick)
+                                       command=self.exit_btn_onclick,
+                                       image=self.exit_icon,
+                                       compound="right")
         
         self.save_btn = ctk.CTkButton(master=self, text='Zapisz',
                                        font=ctk.CTkFont(size=15),
-                                       command=self.save_btn_onclick)
+                                       command=self.save_btn_onclick,
+                                       image=self.save_icon,
+                                       compound="right")
         
         self.reply_btn = ctk.CTkButton(master=self, text='Ponów',
                                        font=ctk.CTkFont(size=15),
                                        command=self.reply_btn_onclick,
-                                       state=ctk.DISABLED)
+                                       state=ctk.DISABLED,
+                                       image=self.replay_icon,
+                                       compound="right")
 
         self.source_cmbox = ctk.CTkComboBox(master=self, values=self.images,
                                       state='readonly',
@@ -90,17 +141,21 @@ class Main_Window(ctk.CTk):
                                       font=ctk.CTkFont(size=15, weight='bold'),
                                       dropdown_font=ctk.CTkFont(size=15, weight='bold'))
         
-        self.source_cmbox_label = ctk.CTkLabel(master=self, text='Wybierz źródło:',
+        self.source_cmbox_label = ctk.CTkLabel(master=self, text='   Wybierz źródło:',
                                    font=ctk.CTkFont(size=15, weight='bold'),
-                                   height=10)
+                                   height=10,
+                                   image=self.folder_icon,
+                                   compound="left")
         
         self.mode_label = ctk.CTkLabel(master=self, text='Wybierz tryb:',
                                    font=ctk.CTkFont(size=15, weight='bold'),
                                    height=10)
         
-        self.model_cmbox_label = ctk.CTkLabel(master=self, text='Wybierz model:',
+        self.model_cmbox_label = ctk.CTkLabel(master=self, text='   Wybierz model:',
                                    font=ctk.CTkFont(size=15, weight='bold'),
-                                   height=10)
+                                   height=10,
+                                   image=self.ai_icon,
+                                   compound="left")
         
         self.radiobtn_image = ctk.CTkRadioButton(master=self, text="Obraz", 
                                                  variable=self.mode, value=1,
@@ -156,22 +211,23 @@ class Main_Window(ctk.CTk):
         self.rowconfigure(6, weight=1)
         
         self.columnconfigure(0,weight=1)
-        self.columnconfigure(1,weight=1)
+        self.columnconfigure(1,weight=0)
         self.columnconfigure(2,weight=1)
         self.columnconfigure(3,weight=1)
+        self.columnconfigure(4,weight=1)
 
         # layout
-        self.image_label.grid(row=0, column=0, columnspan=2, rowspan=3, padx=10, pady=10, sticky='enw')
-        self.conf_slider.grid(row=1, column=2, columnspan=1, rowspan=1, padx=10, pady=10)
-        self.conf_label.grid(row=0, column=2, columnspan=1, rowspan=1, padx=10, pady=10)
-        self.conf_value_label.grid(row=2, column=2, columnspan=1, rowspan=1, padx=10, pady=10)
-        self.iou_slider.grid(row=1, column=3, columnspan=1, rowspan=1, padx=10, pady=10)
-        self.iou_label.grid(row=0, column=3, columnspan=1, rowspan=1, padx=10, pady=10)
-        self.iou_value_label.grid(row=2, column=3, columnspan=1, rowspan=1, padx=10, pady=10)
-        self.predict_btn.grid(row=4, column=2, columnspan=1, rowspan=1, padx=10, pady=10)
-        self.reply_btn.grid(row=4, column=3, columnspan=1, rowspan=1, padx=10, pady=10)
-        self.exit_btn.grid(row=6, column=3, columnspan=1, rowspan=1, padx=10, pady=10)
-        self.save_btn.grid(row=6, column=2, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.image_label.grid(row=0, column=0, columnspan=3, rowspan=3, padx=10, pady=10, sticky='enw')
+        self.conf_slider.grid(row=1, column=3, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.conf_label.grid(row=0, column=3, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.conf_value_label.grid(row=2, column=3, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.iou_slider.grid(row=1, column=4, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.iou_label.grid(row=0, column=4, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.iou_value_label.grid(row=2, column=4, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.predict_btn.grid(row=4, column=3, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.reply_btn.grid(row=4, column=4, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.exit_btn.grid(row=6, column=4, columnspan=1, rowspan=1, padx=10, pady=10)
+        self.save_btn.grid(row=6, column=3, columnspan=1, rowspan=1, padx=10, pady=10)
         self.source_cmbox.grid(row=4, column=0, columnspan=1, rowspan=1, padx=10, pady=10, sticky='ew')
         self.model_cmbox.grid(row=6, column=0, columnspan=1, rowspan=1, padx=10, pady=10, sticky='ew')
         self.source_cmbox_label.grid(row=3, column=0, columnspan=1, rowspan=1, padx=20, pady=10, sticky='sw')
@@ -180,6 +236,9 @@ class Main_Window(ctk.CTk):
         self.radiobtn_image.grid(row=4, column=1, columnspan=1, rowspan=1, padx=10, pady=10, sticky='nsew')
         self.radiobtn_video.grid(row=5, column=1, columnspan=1, rowspan=1, padx=10, pady=10, sticky='nsew')
         self.radiobtn_camera.grid(row=6, column=1, columnspan=1, rowspan=1, padx=10, pady=10, sticky='nsew')
+        self.image_icon_label.grid(row=4, column=2, columnspan=1, rowspan=1, padx=10, pady=10, sticky='w')
+        self.movie_icon_label.grid(row=5, column=2, columnspan=1, rowspan=1, padx=10, pady=10, sticky='w')
+        self.camera_icon_label.grid(row=6, column=2, columnspan=1, rowspan=1, padx=10, pady=10, sticky='w')
         
 
 

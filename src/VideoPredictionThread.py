@@ -73,7 +73,6 @@ class VideoPredictionThread(th.Thread):
                     self.image = Image.fromarray(prediction_image)
                     
                     if self.image_label is not None:
-                        print("update")
                         img = ctk.CTkImage(light_image=self.image,
                                                             dark_image=self.image,
                                                             size=(640,384))
