@@ -26,7 +26,7 @@ class Main_Window(ctk.CTk):
         self.geometry(f'{WINDOW_SIZE[0]}x{WINDOW_SIZE[1]}')
         self.resizable(False, False)
         self.title('YOLO Detektor')
-        self.iconbitmap('../img/icon.ico')
+        self.iconbitmap(resource_path('..\\img\\icon.ico'))
 
         # attributes
         self.images = get_image_list(PATH_TO_IMAGES)
@@ -49,48 +49,48 @@ class Main_Window(ctk.CTk):
         self.image_to_save = {"image" : Image.new('RGB', (640, 384), color='white')} # only for reference
 
         # widgets
-        self.image = ctk.CTkImage(light_image=Image.open(f'../img/photo.png'), # place holder image
-                                    dark_image=Image.open(f'../img/photo.png'),
+        self.image = ctk.CTkImage(light_image=Image.open(resource_path(f'..\\img\\photo.png')), # place holder image
+                                    dark_image=Image.open(resource_path(f'..\\img\\photo.png')),
                                     size=(640,384))
         
-        self.movie_icon = ctk.CTkImage(light_image=Image.open(f'../img/movie.png'), # place holder image
-                                    dark_image=Image.open(f'../img/movie.png'),
+        self.movie_icon = ctk.CTkImage(light_image=Image.open(resource_path(f'..\\img\\movie.png')), # place holder image
+                                    dark_image=Image.open(resource_path(f'..\\img\\movie.png')),
                                     size=(24,24))
         
-        self.camera_icon = ctk.CTkImage(light_image=Image.open(f'../img/camera.png'), # place holder image
-                                    dark_image=Image.open(f'../img/camera.png'),
+        self.camera_icon = ctk.CTkImage(light_image=Image.open(resource_path(f'..\\img\\camera.png')), # place holder image
+                                    dark_image=Image.open(resource_path(f'..\\img\\camera.png')),
                                     size=(24,24))
         
-        self.image_icon = ctk.CTkImage(light_image=Image.open(f'../img/image.png'), # place holder image
-                                    dark_image=Image.open(f'../img/image.png'),
+        self.image_icon = ctk.CTkImage(light_image=Image.open(resource_path(f'..\\img\\image.png')), # place holder image
+                                    dark_image=Image.open(resource_path(f'..\\img\\image.png')),
                                     size=(24,24))
         
-        self.exit_icon = ctk.CTkImage(light_image=Image.open(f'../img/exit.png'), # place holder image
-                                    dark_image=Image.open(f'../img/exit.png'),
+        self.exit_icon = ctk.CTkImage(light_image=Image.open(resource_path(f'..\\img\\exit.png')), # place holder image
+                                    dark_image=Image.open(resource_path(f'..\\img\\exit.png')),
                                     size=(24,24))
         
-        self.save_icon = ctk.CTkImage(light_image=Image.open(f'../img/save.png'), # place holder image
-                                    dark_image=Image.open(f'../img/save.png'),
+        self.save_icon = ctk.CTkImage(light_image=Image.open(resource_path(f'..\\img\\save.png')), # place holder image
+                                    dark_image=Image.open(resource_path(f'..\\img\\save.png')),
                                     size=(24,24))
         
-        self.replay_icon = ctk.CTkImage(light_image=Image.open(f'../img/replay.png'), # place holder image
-                                    dark_image=Image.open(f'../img/replay.png'),
+        self.replay_icon = ctk.CTkImage(light_image=Image.open(resource_path(f'..\\img\\replay.png')), # place holder image
+                                    dark_image=Image.open(resource_path(f'..\\img\\replay.png')),
                                     size=(24,24))
         
-        self.play_icon = ctk.CTkImage(light_image=Image.open(f'../img/play.png'), # place holder image
-                                    dark_image=Image.open(f'../img/play.png'),
+        self.play_icon = ctk.CTkImage(light_image=Image.open(resource_path(f'..\\img\\play.png')), # place holder image
+                                    dark_image=Image.open(resource_path(f'..\\img\\play.png')),
                                     size=(24,24))
         
-        self.pause_icon = ctk.CTkImage(light_image=Image.open(f'../img/pause.png'), # place holder image
-                                    dark_image=Image.open(f'../img/pause.png'),
+        self.pause_icon = ctk.CTkImage(light_image=Image.open(resource_path(f'..\\img\\pause.png')), # place holder image
+                                    dark_image=Image.open(resource_path(f'..\\img\\pause.png')),
                                     size=(24,24))
         
-        self.folder_icon = ctk.CTkImage(light_image=Image.open(f'../img/folder.png'), # place holder image
-                                    dark_image=Image.open(f'../img/folder.png'),
+        self.folder_icon = ctk.CTkImage(light_image=Image.open(resource_path(f'..\\img\\folder.png')), # place holder image
+                                    dark_image=Image.open(resource_path(f'..\\img\\folder.png')),
                                     size=(24,24))
         
-        self.ai_icon = ctk.CTkImage(light_image=Image.open(f'../img/ai.png'), # place holder image
-                                    dark_image=Image.open(f'../img/ai.png'),
+        self.ai_icon = ctk.CTkImage(light_image=Image.open(resource_path(f'..\\img\\ai.png')), # place holder image
+                                    dark_image=Image.open(resource_path(f'..\\img\\ai.png')),
                                     size=(24,24))
         
         self.image_label = ctk.CTkLabel(master=self, text='', image=self.image)
@@ -290,7 +290,7 @@ class Main_Window(ctk.CTk):
     def save_btn_onclick(self) -> None:
         with global_lock:
             if self.image_to_save is not None:
-                self.image_to_save["image"].save(f"../data/screenshots/screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png")
+                self.image_to_save["image"].save(f"..\\data\\screenshots\\screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png")
 
 
     def finish_threads(self):
@@ -313,7 +313,7 @@ class Main_Window(ctk.CTk):
     
     def model_cmbox_callback(self, selected) -> None:
         self.selected_model = selected
-        self.model = YOLO(f'{PATH_TO_MODELS}/{self.selected_model}')
+        self.model = YOLO(f'{PATH_TO_MODELS}\\{self.selected_model}')
 
         if (self.selected_image is not None and self.mode.get() == 1) or (self.selected_video is not None and self.mode.get() == 2):
             self.predict_btn.configure(state=ctk.NORMAL)
@@ -336,7 +336,7 @@ class Main_Window(ctk.CTk):
         self.finish_threads()
         self.start_video_threads()
         self.block_settings()
-        self.predict_btn.configure(text="Pauza")
+        self.predict_btn.configure(text="Pauza", image=self.pause_icon)
         self.pause = False
 
 
@@ -351,17 +351,17 @@ class Main_Window(ctk.CTk):
     def source_cmbox_callback(self, selected) -> None:
         self.finish_threads()
         self.unblock_settings()
-        self.predict_btn.configure(text="Predykcja")
+        self.predict_btn.configure(text="Predykcja", image=self.play_icon)
         self.pause = False
         self.reply_btn.configure(state=ctk.DISABLED)
 
         if self.mode.get() == 1:
             self.selected_image = selected
-            self.update_image(Image.open(f'{PATH_TO_IMAGES}/{selected}'))
-            self.image_to_save["image"] = Image.open(f'{PATH_TO_IMAGES}/{selected}')
+            self.update_image(Image.open(f'{PATH_TO_IMAGES}\\{selected}'))
+            self.image_to_save["image"] = Image.open(f'{PATH_TO_IMAGES}\\{selected}')
         elif self.mode.get() == 2:
             self.selected_video = selected
-            self.update_image(Image.open(f'../img/photo.png'))
+            self.update_image(Image.open(resource_path(f'..\\img\\photo.png')))
             self.image_to_save["image"] = Image.new('RGB', (640, 384), color='white')
 
         if self.model is not None:
@@ -376,20 +376,20 @@ class Main_Window(ctk.CTk):
         elif self.mode.get() == 2 and self.video_predict_thread is None:
             self.start_video_threads()
             self.block_settings()
-            self.predict_btn.configure(text="Pauza")
+            self.predict_btn.configure(text="Pauza", image=self.pause_icon)
 
         elif self.pause:
             self.pause = False
             self.video_stream_thread.unpause()
             self.video_predict_thread.unpause()
-            self.predict_btn.configure(text="Pauza")
+            self.predict_btn.configure(text="Pauza", image=self.pause_icon)
             self.block_settings()
 
         else:
             self.pause = True
             self.video_stream_thread.pause()
             self.video_predict_thread.pause()
-            self.predict_btn.configure(text="Wznów")
+            self.predict_btn.configure(text="Wznów", image=self.play_icon)
             self.unblock_settings()
     
     def block_settings(self):
@@ -417,12 +417,12 @@ class Main_Window(ctk.CTk):
         self.finish_threads()
         self.source_cmbox.configure(state='readonly')
         self.source_cmbox.set('')
-        self.update_image(Image.open(f'../img/photo.png'))
+        self.update_image(Image.open(resource_path(f'..\\img\\photo.png')))
         self.image_to_save["image"] = Image.new('RGB', (640, 384), color='white')
         self.selected_image = None
         self.selected_video = None
         self.reply_btn.configure(state=ctk.DISABLED)
-        self.predict_btn.configure(state=ctk.DISABLED, text="Predykcja")
+        self.predict_btn.configure(state=ctk.DISABLED, text="Predykcja", image=self.play_icon)
 
         if self.mode.get() == 1:
             self.source_cmbox.configure(values=self.images)

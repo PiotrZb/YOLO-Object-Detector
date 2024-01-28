@@ -1,3 +1,13 @@
+import multiprocessing
+multiprocessing.freeze_support()
+
+import sys
+
+from io import StringIO
+memory_buffer = StringIO()
+sys.stdout = memory_buffer
+
+
 from app import App
 
 

@@ -31,7 +31,7 @@ class VideoStreamThread(th.Thread):
             self.loop = False
 
     def run(self):
-        video_capture = cv.VideoCapture(f'{PATH_TO_VIDEOS}/{self.selected_video}') # video capture init
+        video_capture = cv.VideoCapture(f'{PATH_TO_VIDEOS}\\{self.selected_video}') # video capture init
         lag = 0
         try:
             if video_capture.isOpened():

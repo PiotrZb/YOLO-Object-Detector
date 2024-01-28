@@ -17,7 +17,7 @@ class ImagePredictionThread(th.Thread):
 
     def run(self):
         if self.model is not None:
-            results = self.model.predict(f'{PATH_TO_IMAGES}/{self.selected_image}', iou=self.iou, conf=self.conf)
+            results = self.model.predict(f'{PATH_TO_IMAGES}\\{self.selected_image}', iou=self.iou, conf=self.conf)
             image = Image.fromarray(results[0].plot()[..., ::-1])
 
             if self.image_label is not None:

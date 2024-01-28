@@ -1,6 +1,8 @@
-data/screenshots/*
-data/img/*
-data/video/*
-models/*
-src/__pycache__/
+/data/screenshots/*
+/data/img/*
+/data/video/*
+/models/*
+/build/
+/src/__pycache__/
+*.spec
 !.gitkeep
