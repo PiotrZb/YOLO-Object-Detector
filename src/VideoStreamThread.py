@@ -12,6 +12,7 @@ class VideoStreamThread(th.Thread):
         self.selected_video = selected_video
         self.wait = False
         self.lock = lock
+        self.daemon = True
 
     def pause(self):
         with self.lock:
@@ -32,34 +33,35 @@ class VideoStreamThread(th.Thread):
     def run(self):
         video_capture = cv.VideoCapture(f'{PATH_TO_VIDEOS}/{self.selected_video}') # video capture init
         lag = 0
+        try:
+            if video_capture.isOpened():
 
-        if video_capture.isOpened():
+                original_fps = video_capture.get(cv.CAP_PROP_FPS) # frame rate for original video
+                if original_fps < 0.5:
+                    original_fps = 30
 
-            original_fps = video_capture.get(cv.CAP_PROP_FPS) # frame rate for original video
-            if original_fps < 0.5:
-                original_fps = 30
+                original_time = (1 / original_fps) # single frame time
 
-            original_time = (1 / original_fps) # single frame time
+                while self.loop:
+                    if self.wait:
+                        time.sleep(0.5)
+                        continue
 
-            while self.loop:
-                if self.wait:
-                    time.sleep(0.5)
-                    continue
+                    start_time = time.time()
 
-                start_time = time.time()
+                    ret, self.image = video_capture.read() # read next frame
 
-                ret, self.image = video_capture.read() # read next frame
+                    if not ret: # end ov video (finish thread)
+                        break
 
-                if not ret: # end ov video (finish thread)
-                    break
+                    # set const frame rate
+                    diff = original_time - (time.time() - start_time)
+                    if lag > 0:
+                        lag -= diff
+                    elif diff > 0.0:
+                        time.sleep(diff)
+                    else:
+                        lag += diff
 
-                # set const frame rate
-                diff = original_time - (time.time() - start_time)
-                if lag > 0:
-                    lag -= diff
-                elif diff > 0.0:
-                    time.sleep(diff)
-                else:
-                    lag += diff
-
-        video_capture.release()
+        finally:
+            video_capture.release()

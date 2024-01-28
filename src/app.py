@@ -11,6 +11,20 @@ class App:
     
     def on_closing(self):
         self.main_window.finish_threads()
+
+        # wait for thrads to finish
+        if self.main_window.single_image_thread is not None:
+            self.main_window.single_image_thread.join()
+
+        if self.main_window.video_stream_thread is not None:
+            self.main_window.video_stream_thread.join()
+
+        if self.main_window.video_predict_thread is not None:
+            self.main_window.video_predict_thread.join()
+
+        if self.main_window.camera_thread is not None:
+            self.main_window.camera_thread.join()
+
         self.main_window.destroy()
 
     def run(self):

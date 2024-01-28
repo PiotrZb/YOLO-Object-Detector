@@ -10,6 +10,7 @@ from CameraThread import CameraThread
 from VideoStreamThread import VideoStreamThread
 from ImagePredictionThread import ImagePredictionThread
 from VideoPredictionThread import VideoPredictionThread
+from datetime import datetime
 
 
 # global variables
@@ -45,6 +46,7 @@ class Main_Window(ctk.CTk):
         self.conf_text = tk.StringVar(master=self, value="25 %")
         self.iou_text = tk.StringVar(master=self, value="0.50")
         self.pause = False
+        self.image_to_save = {"image" : Image.new('RGB', (640, 384), color='white')} # only for reference
 
         # widgets
         self.image = ctk.CTkImage(light_image=Image.open(f'../img/photo.png'), # place holder image
@@ -249,33 +251,59 @@ class Main_Window(ctk.CTk):
     def iou_slider_event(self, value):
         self.iou_text.set(f"{round(value, 2):.2f}")
 
+        if self.mode.get() == 2 and self.video_predict_thread is not None:
+            self.video_predict_thread.set_iou(value)
+
+        if self.mode.get() == 3 and self.camera_thread is not None:
+            self.camera_thread.set_iou(value)
+
 
     def conf_slider_event(self, value):
         self.conf_text.set(f"{int(value)} %")
 
+        if self.mode.get() == 2 and self.video_predict_thread is not None:
+            self.video_predict_thread.set_conf(value / 100)
+
+        if self.mode.get() == 3 and self.camera_thread is not None:
+            self.camera_thread.set_conf(value / 100)
+
 
     def exit_btn_onclick(self) -> None:
         self.finish_threads()
+
+        # wait for thrads to finish
+        if self.single_image_thread is not None:
+            self.single_image_thread.join()
+
+        if self.video_stream_thread is not None:
+            self.video_stream_thread.join()
+
+        if self.video_predict_thread is not None:
+            self.video_predict_thread.join()
+
+        if self.camera_thread is not None:
+            self.camera_thread.join()
+
         self.destroy()
 
+
     def save_btn_onclick(self) -> None:
-        pass
+        with global_lock:
+            if self.image_to_save is not None:
+                self.image_to_save["image"].save(f"../data/screenshots/screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png")
 
 
     def finish_threads(self):
         if self.video_stream_thread is not None and self.video_stream_thread.is_alive():
             self.video_stream_thread.stop()
-            #self.video_stream_thread.join()
             self.stream_thread = None
 
         if self.video_predict_thread is not None and self.video_predict_thread.is_alive():
             self.video_predict_thread.stop()
-            #self.video_predict_thread.join()
             self.video_predict_thread = None
 
         if self.camera_thread is not None and self.camera_thread.is_alive():             
             self.camera_thread.stop()
-            #self.camera_thread.join()
             self.camera_thread = None
 
         if self.single_image_thread is not None and self.single_image_thread.is_alive():
@@ -290,17 +318,26 @@ class Main_Window(ctk.CTk):
         if (self.selected_image is not None and self.mode.get() == 1) or (self.selected_video is not None and self.mode.get() == 2):
             self.predict_btn.configure(state=ctk.NORMAL)
 
+        if self.mode.get() == 2 and self.video_predict_thread is not None:
+            self.video_predict_thread.set_model(self.model)
+
+        if self.mode.get() == 3 and self.camera_thread is not None:
+            self.camera_thread.set_model(self.model)
+
 
     def start_video_threads(self):
         self.video_stream_thread = VideoStreamThread(self.selected_video, global_lock)
         self.video_stream_thread.start()
-        self.video_predict_thread = VideoPredictionThread(self.model, self.iou.get(), self.conf.get() / 100, self.image_label, self.video_stream_thread, global_lock)
+        self.video_predict_thread = VideoPredictionThread(self.model, self.iou.get(), self.conf.get() / 100, self.image_label, self.video_stream_thread, self.image_to_save, global_lock)
         self.video_predict_thread.start()
 
 
     def reply_btn_onclick(self) -> None:
         self.finish_threads()
         self.start_video_threads()
+        self.block_settings()
+        self.predict_btn.configure(text="Pauza")
+        self.pause = False
 
 
     def update_image(self, image):
@@ -308,63 +345,84 @@ class Main_Window(ctk.CTk):
                             dark_image=image,
                             size=(640,384))
         self.image_label.configure(image=img)
-        self.image_label.image = img
+        self.image_label._image = img
 
 
     def source_cmbox_callback(self, selected) -> None:
+        self.finish_threads()
+        self.unblock_settings()
+        self.predict_btn.configure(text="Predykcja")
+        self.pause = False
+        self.reply_btn.configure(state=ctk.DISABLED)
+
         if self.mode.get() == 1:
             self.selected_image = selected
             self.update_image(Image.open(f'{PATH_TO_IMAGES}/{selected}'))
+            self.image_to_save["image"] = Image.open(f'{PATH_TO_IMAGES}/{selected}')
         elif self.mode.get() == 2:
             self.selected_video = selected
+            self.update_image(Image.open(f'../img/photo.png'))
+            self.image_to_save["image"] = Image.new('RGB', (640, 384), color='white')
+
         if self.model is not None:
             self.predict_btn.configure(state=ctk.NORMAL)
 
 
     def predict_btn_onclick(self) -> None:
         if self.mode.get() == 1:
-            self.single_image_thread = ImagePredictionThread(self.model, self.iou.get(), self.conf.get() / 100, self.image_label, self.selected_image)
+            self.single_image_thread = ImagePredictionThread(self.model, self.iou.get(), self.conf.get() / 100, self.image_label, self.selected_image, self.image_to_save)
             self.single_image_thread.start()
 
         elif self.mode.get() == 2 and self.video_predict_thread is None:
             self.start_video_threads()
-            self.radiobtn_camera.configure(state=ctk.DISABLED)
-            self.radiobtn_video.configure(state=ctk.DISABLED)
-            self.radiobtn_image.configure(state=ctk.DISABLED)
-            self.source_cmbox.configure(state=ctk.DISABLED)
-            self.iou_slider.configure(state=ctk.DISABLED)
-            self.conf_slider.configure(state=ctk.DISABLED)
+            self.block_settings()
+            self.predict_btn.configure(text="Pauza")
 
         elif self.pause:
             self.pause = False
             self.video_stream_thread.unpause()
             self.video_predict_thread.unpause()
             self.predict_btn.configure(text="Pauza")
-            self.reply_btn.configure(state=ctk.DISABLED)
-            self.radiobtn_camera.configure(state=ctk.DISABLED)
-            self.radiobtn_video.configure(state=ctk.DISABLED)
-            self.radiobtn_image.configure(state=ctk.DISABLED)
-            self.source_cmbox.configure(state=ctk.DISABLED)
-            self.iou_slider.configure(state=ctk.DISABLED)
-            self.conf_slider.configure(state=ctk.DISABLED)
+            self.block_settings()
 
         else:
             self.pause = True
             self.video_stream_thread.pause()
             self.video_predict_thread.pause()
             self.predict_btn.configure(text="Wznów")
-            self.reply_btn.configure(state=ctk.NORMAL)
-            self.radiobtn_camera.configure(state=ctk.NORMAL)
-            self.radiobtn_video.configure(state=ctk.NORMAL)
-            self.radiobtn_image.configure(state=ctk.NORMAL)
-            self.source_cmbox.configure(state=ctk.NORMAL)
-            self.iou_slider.configure(state=ctk.NORMAL)
-            self.conf_slider.configure(state=ctk.NORMAL)
+            self.unblock_settings()
+    
+    def block_settings(self):
+        self.reply_btn.configure(state=ctk.DISABLED)
+        self.radiobtn_camera.configure(state=ctk.DISABLED)
+        self.radiobtn_video.configure(state=ctk.DISABLED)
+        self.radiobtn_image.configure(state=ctk.DISABLED)
+        self.source_cmbox.configure(state=ctk.DISABLED)
+        self.iou_slider.configure(state=ctk.DISABLED)
+        self.conf_slider.configure(state=ctk.DISABLED)
+        self.model_cmbox.configure(state=ctk.DISABLED)
+
+    def unblock_settings(self):
+        self.reply_btn.configure(state=ctk.NORMAL)
+        self.radiobtn_camera.configure(state=ctk.NORMAL)
+        self.radiobtn_video.configure(state=ctk.NORMAL)
+        self.radiobtn_image.configure(state=ctk.NORMAL)
+        self.source_cmbox.configure(state='readonly')
+        self.iou_slider.configure(state=ctk.NORMAL)
+        self.conf_slider.configure(state=ctk.NORMAL)
+        self.model_cmbox.configure(state='readonly')
 
 
     def radiobtn_callback(self):
         self.finish_threads()
-        self.source_cmbox.configure(state=ctk.NORMAL)
+        self.source_cmbox.configure(state='readonly')
+        self.source_cmbox.set('')
+        self.update_image(Image.open(f'../img/photo.png'))
+        self.image_to_save["image"] = Image.new('RGB', (640, 384), color='white')
+        self.selected_image = None
+        self.selected_video = None
+        self.reply_btn.configure(state=ctk.DISABLED)
+        self.predict_btn.configure(state=ctk.DISABLED, text="Predykcja")
 
         if self.mode.get() == 1:
             self.source_cmbox.configure(values=self.images)
@@ -373,13 +431,6 @@ class Main_Window(ctk.CTk):
             self.source_cmbox.configure(values=self.videos)
 
         elif self.mode.get() == 3:
-            self.camera_thread = CameraThread(self.model, self.iou.get(), self.conf.get() / 100, self.image_label)
+            self.camera_thread = CameraThread(self.model, self.iou.get(), self.conf.get() / 100, self.image_label, self.image_to_save, global_lock)
             self.camera_thread.start()
             self.source_cmbox.configure(state=ctk.DISABLED)
-            
-        self.source_cmbox.set('')
-        self.update_image(Image.open(f'../img/photo.png'))
-        self.selected_image = None
-        self.selected_video = None
-        self.reply_btn.configure(state=ctk.DISABLED)
-        self.predict_btn.configure(state=ctk.DISABLED, text="Predykcja")

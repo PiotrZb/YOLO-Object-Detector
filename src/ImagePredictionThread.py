@@ -5,13 +5,15 @@ import threading as th
 
 
 class ImagePredictionThread(th.Thread):
-    def __init__(self, model=None, iou=0.5, conf=0.25, image_label=None, selected_image=None):
+    def __init__(self, model=None, iou=0.5, conf=0.25, image_label=None, selected_image=None, image_to_save=None):
         super(ImagePredictionThread, self).__init__()
         self.model = model
         self.iou = iou
         self.conf = conf
         self.image_label = image_label
         self.selected_image = selected_image
+        self.daemon = True
+        self.image_to_save = image_to_save
 
     def run(self):
         if self.model is not None:
@@ -24,3 +26,5 @@ class ImagePredictionThread(th.Thread):
                                     size=(640,384))
                 self.image_label.configure(image=img)
                 self.image_label.image = img
+
+                self.image_to_save["image"] = image

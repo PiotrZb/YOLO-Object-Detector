@@ -1,5 +1,3 @@
-from PIL import Image
-from ultralytics import YOLO
 import os
 from settings import *
 

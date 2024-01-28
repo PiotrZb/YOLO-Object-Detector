@@ -7,7 +7,7 @@ import customtkinter as ctk
 
 
 class VideoPredictionThread(th.Thread):
-    def __init__(self, model=None, iou=0.5, conf=0.25, image_label=None, stream=None, lock=None):
+    def __init__(self, model=None, iou=0.5, conf=0.25, image_label=None, stream=None, image_to_save=None, lock=None):
         super(VideoPredictionThread, self).__init__()
         self.model = model
         self.iou = iou
@@ -19,6 +19,8 @@ class VideoPredictionThread(th.Thread):
         self.wait = False
         self.lock = lock
         self.stream = stream
+        self.daemon = True
+        self.image_to_save = image_to_save
 
     def set_model(self, model):
         with self.lock:
@@ -72,12 +74,15 @@ class VideoPredictionThread(th.Thread):
                     # update image
                     self.image = Image.fromarray(prediction_image)
                     
-                    if self.image_label is not None:
+                    if self.image_label is not None and self.loop:
                         img = ctk.CTkImage(light_image=self.image,
-                                                            dark_image=self.image,
-                                                            size=(640,384))
+                                        dark_image=self.image,
+                                        size=(640,384))
                         self.image_label.configure(image=img)
                         self.image_label.image = img
+
+                        with self.lock:
+                            self.image_to_save["image"] = self.image
 
                 else:
                     time.sleep(0.5)
