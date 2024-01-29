@@ -32,6 +32,7 @@ Exit icon - <a href="https://www.flaticon.com/free-icons/exit-button" title="exi
 Replay icon - <a href="https://www.flaticon.com/free-icons/again" title="again icons">Again icons created by Ehtisham Abid - Flaticon</a>
 Play icon - <a href="https://www.flaticon.com/free-icons/play-button" title="play button icons">Play button icons created by Vector Stall - Flaticon</a>
 Pause icon - <a href="https://www.flaticon.com/free-icons/pause" title="pause icons">Pause icons created by Vector Stall - Flaticon</a>
+Installer icon - <a href="https://www.flaticon.com/free-icons/installer" title="installer icons">Installer icons created by Bombasticon Studio - Flaticon</a>
 
 ## License :page_facing_up:
 [MIT License](LICENSE)

@@ -1,7 +1,6 @@
 /data/screenshots/*
 /data/img/*
 /data/video/*
-/models/*
 /build/
 /src/__pycache__/
 *.spec
